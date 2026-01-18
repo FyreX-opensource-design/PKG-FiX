@@ -28,7 +28,7 @@ show_progress() {
 
 # وظيفة لفحص الحزم
 analyze_packages() {
-    show_message "بدء تحليل الحزم الفاشلة..."
+    show_message "Starting analysis of failed packages..."
     
     # إنشاء ملفات للتصنيف
     > "$WORK_DIR/official_repos.txt"
@@ -42,7 +42,7 @@ analyze_packages() {
     while read line; do
         ((current++))
         pkg=$(echo "$line" | cut -d':' -f1)
-        show_progress "تحليل الحزم: $current من $total_pkgs"
+        show_progress "Packet analysis: $current from $total_pkgs"
         
         if pacman -Si "$pkg" >/dev/null 2>&1; then
             echo "$pkg" >> "$WORK_DIR/official_repos.txt"
@@ -61,11 +61,11 @@ analyze_packages() {
 
 # وظيفة لتثبيت الحزم الرسمية
 install_official_packages() {
-    show_message "محاولة تثبيت الحزم الرسمية..."
+    show_message "Attempting to install the official packages..."
     
     total_official=$(wc -l < "$WORK_DIR/official_repos.txt")
     if [ $total_official -eq 0 ]; then
-        show_message "${YELLOW}لا توجد حزم رسمية للتثبيت${NC}"
+        show_message "${YELLOW}There are no official installation packages.${NC}"
         return
     fi
     
@@ -74,7 +74,7 @@ install_official_packages() {
     > "$WORK_DIR/successful_installs.txt"
     while read -r pkg; do
         ((current++))
-        show_progress "تثبيت الحزم الرسمية: $current من $total_official"
+        show_progress "Install official packages: $current from $total_official"
         
         if sudo pacman -S --needed --noconfirm --overwrite "/*" "$pkg" >/dev/null 2>&1; then
             echo "$pkg" >> "$WORK_DIR/successful_installs.txt"
@@ -88,28 +88,28 @@ install_official_packages() {
 
 # وظيفة لإظهار التقرير النهائي
 show_report() {
-    echo -e "\n${GREEN}=== تقرير التثبيت ===${NC}"
-    echo -e "الحزم الرسمية المثبتة بنجاح: ${GREEN}$(wc -l < "$WORK_DIR/successful_installs.txt" 2>/dev/null || echo 0)${NC}"
-    echo -e "الحزم التي تحتاج إلى AUR: ${YELLOW}$(wc -l < "$WORK_DIR/aur_packages.txt" 2>/dev/null || echo 0)${NC}"
-    echo -e "الحزم غير الموجودة: ${RED}$(wc -l < "$WORK_DIR/not_in_repos.txt" 2>/dev/null || echo 0)${NC}"
-    echo -e "الحزم المتعارضة: ${RED}$(wc -l < "$WORK_DIR/conflicts.txt" 2>/dev/null || echo 0)${NC}"
+    echo -e "\n${GREEN}=== Installation report ===${NC}"
+    echo -e "Official packages installed successfully.: ${GREEN}$(wc -l < "$WORK_DIR/successful_installs.txt" 2>/dev/null || echo 0)${NC}"
+    echo -e "Packages that are needed from the AUR: ${YELLOW}$(wc -l < "$WORK_DIR/aur_packages.txt" 2>/dev/null || echo 0)${NC}"
+    echo -e "Missing packages: ${RED}$(wc -l < "$WORK_DIR/not_in_repos.txt" 2>/dev/null || echo 0)${NC}"
+    echo -e "Conflicting packages: ${RED}$(wc -l < "$WORK_DIR/conflicts.txt" 2>/dev/null || echo 0)${NC}"
     
     # عرض قائمة الحزم التي تحتاج إلى اهتمام
     if [ -s "$WORK_DIR/aur_packages.txt" ]; then
-        echo -e "\n${YELLOW}الحزم التي تحتاج إلى تثبيت من AUR:${NC}"
+        echo -e "\n${YELLOW}Packages that need to be installed from the AUR:${NC}"
         cat "$WORK_DIR/aur_packages.txt"
     fi
     
     if [ -s "$WORK_DIR/conflicts.txt" ]; then
-        echo -e "\n${RED}الحزم التي واجهت تعارضات:${NC}"
+        echo -e "\n${RED}Packages that encountered conflicts:${NC}"
         cat "$WORK_DIR/conflicts.txt"
     fi
     
-    echo -e "\n${BLUE}جميع السجلات محفوظة في: $LOG_DIR${NC}"
+    echo -e "\n${BLUE}All records are kept at: $LOG_DIR${NC}"
 }
 
 # التنفيذ الرئيسي
-show_message "بدء عملية إصلاح الحزم..."
+show_message "Starting the package repair process..."
 analyze_packages
 install_official_packages
 show_report
@@ -117,7 +117,7 @@ show_report
 # إنشاء سكربت للتثبيت اليدوي
 cat > "$WORK_DIR/manual_install.sh" << 'EOF'
 #!/bin/bash
-# تثبيت حزم AUR
+# Install packages from AUR
 if [ -f "aur_packages.txt" ]; then
     while read pkg; do
         yay -S --noconfirm "$pkg"
@@ -126,4 +126,4 @@ fi
 EOF
 chmod +x "$WORK_DIR/manual_install.sh"
 
-show_message "تم إنشاء سكربت للتثبيت اليدوي في: $WORK_DIR/manual_install.sh"
+show_message "A script for manual installation was created in: $WORK_DIR/manual_install.sh"
